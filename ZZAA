@@ -1,0 +1,42 @@
+-- ServerScriptService -> CombatServer (Script)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local attackEvent = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("AttackEvent")
+
+local ATTACK_RANGE = 5 -- ระยะโจมตี (studs)
+local BASE_DAMAGE = 15 -- ดาเมจพื้นฐาน
+
+attackEvent.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+	
+	local hrp = character.HumanoidRootPart
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	
+	if humanoid and humanoid.Health > 0 then
+		-- ตรวจหาผู้เล่นคนอื่นในระยะ
+		for _, targetPlayer in pairs(game.Players:GetPlayers()) do
+			if targetPlayer ~= player and targetPlayer.Character then
+				local targetChar = targetPlayer.Character
+				local targetHrp = targetChar:FindFirstChild("HumanoidRootPart")
+				local targetHumanoid = targetChar:FindFirstChildOfClass("Humanoid")
+				
+				if targetHrp and targetHumanoid and targetHumanoid.Health > 0 then
+					-- คำนวณระยะห่างระหว่างผู้เล่น
+					local distance = (hrp.Position - targetHrp.Position).Magnitude
+					
+					if distance <= ATTACK_RANGE then
+						-- ตรวจสอบเรื่องการตีพวกเดียวกัน (สามารถเปิด/ปิดได้)
+						local playerSchool = player.PlayerData.School.Value
+						local targetSchool = targetPlayer.PlayerData.School.Value
+						
+						-- ทำความเสียหายเฉพาะคนละสถาบัน
+						if playerSchool ~= targetSchool then
+							targetHumanoid:TakeDamage(BASE_DAMAGE)
+							print(player.Name .. " ต่อย " .. targetPlayer.Name .. " เข้าเป้า!")
+						end
+					end
+				end
+			end
+		end
+	end
+end)
